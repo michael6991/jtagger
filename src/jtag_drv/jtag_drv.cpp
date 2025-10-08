@@ -1,5 +1,8 @@
 #include "jtag_drv.h"
+#include "../chain/chain.h"
 #include "../../include/utils.h"
+
+tap_state current_state = TEST_LOGIC_RESET;
 
 void reset_tap()
 {
@@ -15,13 +18,13 @@ void reset_tap()
     current_state = TEST_LOGIC_RESET;
 }
 
-int detect_chain(uint32_t* out_ir_len, uint32_t* out_idcode)
+status_t detect_chain(uint32_t* out_ir_len, uint32_t* out_idcode)
 {
     uint8_t id_bits[32] = {0};
     uint32_t idcode = 0;
     uint32_t i = 0;
     uint8_t counter = 0;
-    int rc = OK;
+    status_t rc = OK;
 
     reset_tap();
     Serial.println("Attempting to detect active chain");
@@ -94,7 +97,7 @@ int detect_chain(uint32_t* out_ir_len, uint32_t* out_idcode)
             counter++;
             *out_ir_len = counter;
             *out_idcode = idcode;
-            Serial.print("\nIR length: "); Serial.println(cur_tap->ir_len, DEC);
+            Serial.print("\nIR length: "); Serial.println(counter, DEC);
             return OK;
         }
         counter++;
@@ -149,11 +152,11 @@ void insert_ir(uint8_t* ir_in, uint8_t* ir_out, uint32_t ir_len, uint8_t end_sta
     }
 }
 
-void insert_dr(uint8_t* dr_in, uint8_t dr_len, uint8_t end_state, uint8_t* dr_out)
+void insert_dr(uint8_t* dr_in,  uint8_t* dr_out, uint32_t dr_len, uint8_t end_state)
 {
-    // make sure that current state is TLR
     uint32_t i = 0;
 
+    // make sure that current TAP machine state is TLR
     advance_tap_state(RUN_TEST_IDLE);
     advance_tap_state(SELECT_DR);
     advance_tap_state(CAPTURE_DR);
@@ -192,14 +195,13 @@ void flush_ir_dr(uint8_t* ir_reg, uint8_t* dr_reg, uint32_t ir_len, uint32_t dr_
     clear_reg(dr_reg, dr_len);
 }
 
-uint32_t detect_dr_len(uint8_t* instruction, uint8_t ir_len, uint32_t process_ticks)
+uint32_t detect_dr_len(uint8_t* instruction, uint32_t ir_len, uint32_t process_ticks)
 {	
     // make sure that current state is TLR prior this calling this function.
 
     // temporary array to strore the shifted out bits from IR
     uint8_t tmp[ir_len];
-    uint32_t i = 0;
-    uint32_t counter = 0;
+    uint32_t i, counter = 0;
 
     // insert the instruction we wish to check into ir
     insert_ir(instruction, tmp, ir_len, RUN_TEST_IDLE);
@@ -244,10 +246,10 @@ uint32_t detect_dr_len(uint8_t* instruction, uint8_t ir_len, uint32_t process_ti
     return 0;
 }
 
-int discovery(uint32_t first, uint32_t last, uin32_t max_dr_len, uint8_t* ir_in, uint8_t* ir_out)
+status_t discovery(uint32_t first, uint32_t last, uint32_t max_dr_len, uint32_t ir_len, uint8_t* ir_in)
 {
     uint32_t instruction, len = 0;
-    int rc = OK;
+    status_t rc = OK;
 
     // discover all dr lengths corresponding to their ir.
     Serial.print("\n\nDiscovery of instructions from 0x"); Serial.print(first, HEX);
@@ -284,7 +286,7 @@ int discovery(uint32_t first, uint32_t last, uin32_t max_dr_len, uint8_t* ir_in,
     return rc;
 }
 
-int advance_tap_state(uint8_t next_state)
+status_t advance_tap_state(uint8_t next_state)
 {
     int rc = OK;
 

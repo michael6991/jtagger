@@ -1,9 +1,10 @@
 #include <stdint.h>
 
 #include "Arduino.h"
-#include "../include/utils.h
+#include "../include/utils.h"
 #include "../include/status.h"
 
+String digits = "";
 
 void clear_reg(uint8_t* reg, int len)
 {
@@ -94,7 +95,7 @@ void fetch_number(const char* message)
 #endif
 }
 
-uint32_t get_integer(int num_bytes, const char* message)
+uint32_t get_integer(int num_bytes)
 {
     char myData[num_bytes];
 
@@ -116,11 +117,18 @@ uint32_t get_integer(int num_bytes, const char* message)
     return z;
 }
 
-int parse_number(uint8_t* dest, uint16_t size, const char* message, uint32_t* out)
+status_t parse_number(uint8_t* dest, uint16_t size, const char* message, uint32_t* out)
 {
-    int rc = OK;
+    status_t rc = OK;
     char prefix = '0';
-    
+
+    if (dest == nullptr) // TODO: check more params
+    {
+        Serial.println("\nDestination is nullptr, didn't get number");
+        rc = -ERR_BAD_PARAMETER;
+        goto exit;
+    }
+
     // set a default parsed value
     *out = 0;
 
@@ -179,14 +187,12 @@ int parse_number(uint8_t* dest, uint16_t size, const char* message, uint32_t* ou
             digits.toCharArray(tmp, digits.length() + 1);
             tmp[digits.length()] = '\0';
             *out = strtoul(tmp, NULL, 10);
-
-            if (dest != nullptr) {
-                rc = int_to_bin_array(dest, *out, size);
-            }
-        } else {
-            Serial.println("\nBad prefix, didn't get number");
-            rc = -ERR_BAD_PREFIX_OR_SUFFIX;
+            rc = int_to_bin_array(dest, *out, size);
+            break;
         }
+
+        Serial.println("\nBad prefix, didn't get number");
+        rc = -ERR_BAD_PREFIX_OR_SUFFIX;
         break;
     }
 
@@ -194,21 +200,25 @@ exit:
     return rc;
 }
 
-int chr_to_hex(char ch)
+status_t chr_to_hex(char ch, uint8_t* out)
 {
+    status_t rc = OK;
+
     if (ch >= 'a' && ch <= 'f')
-        return ch - 0x57;
+        *out = (int)(ch - 0x57);
 
     if (ch >= 'A' && ch <= 'F')
-        return ch - 0x37;
+        *out = (int)(ch - 0x37);
 
     if (ch >= '0' && ch <= '9')
-        return ch - 0x30;
+        *out = (int)(ch - 0x30);
+    else
+        rc = -ERR_BAD_CONVERSION;
 
-    return -ERR_BAD_CONVERSION;
+    return rc;
 }
 
-int bin_array_to_uint32(uint8_t* arr, int len, uint32_t* out)
+status_t bin_array_to_uint32(uint8_t* arr, int len, uint32_t* out)
 {	
     uint32_t integer = 0;
     uint32_t mask = 1;
@@ -232,7 +242,7 @@ int bin_array_to_uint32(uint8_t* arr, int len, uint32_t* out)
     return OK;
 }
 
-int bin_string_to_uint32(String str, uint32_t* out)
+status_t bin_string_to_uint32(String str, uint32_t* out)
 {
     uint32_t integer = 0;
     uint32_t mask = 1;
@@ -257,7 +267,7 @@ int bin_string_to_uint32(String str, uint32_t* out)
 }
 
 
-int bin_str_to_bin_array(uint8_t* arr, int arrSize, String str ,int strSize)
+status_t bin_str_to_bin_array(uint8_t* arr, int arrSize, String str ,int strSize)
 {
     int i = 0;
 
@@ -284,11 +294,12 @@ int bin_str_to_bin_array(uint8_t* arr, int arrSize, String str ,int strSize)
     return OK;
 }
 
-int hex_str_to_bin_array(uint8_t* arr, int arrSize, String str, int strSize)
+status_t hex_str_to_bin_array(uint8_t* arr, int arrSize, String str, int strSize)
 {
     int i = 0;
     int j = 0;
     int vacantBits = 0;
+    status_t rc = OK;
     uint8_t n = 0;
     
     if (strSize * 4 > arrSize)
@@ -305,14 +316,23 @@ int hex_str_to_bin_array(uint8_t* arr, int arrSize, String str, int strSize)
             Serial.print("\nVacant bits: "); Serial.print(vacantBits);
             Serial.println("\nBad Conversion");
             Serial.flush();
-            return -ERR_BAD_CONVERSION;
+            rc = -ERR_BAD_CONVERSION;
+            goto exit;
         }
 
-        if (vacantBits == 3 && chr_to_hex(str[0]) > 7)
+        rc = chr_to_hex(str[0], &n);
+        if (rc != OK)
+        {
+            Serial.println("\nchr_to_hex: bad digit type");
+            Serial.println("Bad Conversion");
+            goto exit;
+        }
+
+        if (vacantBits == 3 && n > 7)
             Serial.print("\nWarning, last digit is to large to fit register. Expect bad conversion.");
-        if (vacantBits == 2 && chr_to_hex(str[0]) > 3)
+        if (vacantBits == 2 && n > 3)
             Serial.print("\nWarning, last digit is to large to fit register. Expect bad conversion.");
-        if (vacantBits == 1 && chr_to_hex(str[0]) > 1)
+        if (vacantBits == 1 && n > 1)
             Serial.print("\nWarning, last digit is to large to fit register. Expect bad conversion.");
     }
 
@@ -321,12 +341,12 @@ int hex_str_to_bin_array(uint8_t* arr, int arrSize, String str, int strSize)
     // last digit in received string is the least significant
     for (i = strSize - 1; i >= 0; i--)
     {
-        n = chr_to_hex(str[i]);
-        if (n == -1)
+        rc = chr_to_hex(str[i], &n);
+        if (rc != OK)
         {
             Serial.println("\nchr_to_hex: bad digit type");
             Serial.println("Bad Conversion");
-            return -ERR_BAD_CONVERSION;
+            goto exit;
         }
 
         // do this if we reached the last digit and arrSize < strSize * 4
@@ -364,14 +384,16 @@ int hex_str_to_bin_array(uint8_t* arr, int arrSize, String str, int strSize)
         j += 4; // update destination array index
     }
 
-    return OK;
+exit:
+    return rc;
 }
 
-int dec_str_to_bin_array(uint8_t* arr, int arrSize, String str, int strSize)
+status_t dec_str_to_bin_array(uint8_t* arr, int arrSize, String str, int strSize)
 {
     int i = 0;
     int j = 0;
     int vacantBits = 0;
+    status_t rc = OK;
     uint8_t n = 0;
     
     if (strSize * 4 > arrSize)
@@ -388,13 +410,23 @@ int dec_str_to_bin_array(uint8_t* arr, int arrSize, String str, int strSize)
             Serial.print("\nVacant bits: "); Serial.print(vacantBits);
             Serial.println("\nBad Conversion");
             Serial.flush();
-            return -ERR_BAD_CONVERSION;
+            rc = -ERR_BAD_CONVERSION;
+            goto exit;
         }
-        if (vacantBits == 3 && chr_to_hex(str[0]) > 7)
+
+        rc = chr_to_hex(str[0], &n);
+        if (rc != OK)
+        {
+            Serial.println("\nchr_to_hex: bad digit type");
+            Serial.println("Bad Conversion");
+            goto exit;
+        }
+
+        if (vacantBits == 3 && n > 7)
             Serial.print("\nWarning, last digit is to large to fit register. Expect bad conversion.");
-        if (vacantBits == 2 && chr_to_hex(str[0]) > 3)
+        if (vacantBits == 2 && n > 3)
             Serial.print("\nWarning, last digit is to large to fit register. Expect bad conversion.");
-        if (vacantBits == 1 && chr_to_hex(str[0]) > 1)
+        if (vacantBits == 1 && n > 1)
             Serial.print("\nWarning, last digit is to large to fit register. Expect bad conversion.");
     }
 
@@ -403,12 +435,12 @@ int dec_str_to_bin_array(uint8_t* arr, int arrSize, String str, int strSize)
     // last digit in received string is the least significant
     for (i = strSize - 1; i >= 0; i--)
     {
-        n = chr_to_hex(str[i]);
-        if (n == -1)
+        rc = chr_to_hex(str[i], &n);
+        if (rc != OK)
         {
             Serial.println("\nchr_to_hex: bad digit type");
             Serial.println("Bad Conversion");
-            return -ERR_BAD_CONVERSION;
+            goto exit;
         }
 
         // do this if we reached the last digit and arrSize < strSize * 4
@@ -447,10 +479,11 @@ int dec_str_to_bin_array(uint8_t* arr, int arrSize, String str, int strSize)
         j += 4;  // update destination array index
     }
 
+exit:
     return OK;
 }
 
-int int_to_bin_array(uint8_t* arr, uint32_t n, uint32_t len)
+status_t int_to_bin_array(uint8_t* arr, uint32_t n, uint32_t len)
 {
     uint32_t mask = 1;
 
@@ -463,7 +496,7 @@ int int_to_bin_array(uint8_t* arr, uint32_t n, uint32_t len)
 
     clear_reg(arr, len);
 
-    for (int i = 0; i < len; i++)
+    for (uint32_t i = 0; i < len; i++)
     {
         arr[i] = (n & mask) ? 1 : 0;
         mask <<= 1;

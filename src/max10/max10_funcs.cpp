@@ -6,6 +6,7 @@
 #include "max10_ir.h"
 #include "../jtag_drv/jtag_drv.h"
 #include "../../include/main.h"
+#include "../../include/utils.h"
 
 /**
  * @brief Read user defined 32 bit code of MAX10 FPGA.
@@ -18,12 +19,13 @@
 uint32_t max10_read_user_code(const uint8_t ir_len, uint8_t* ir_in, uint8_t* ir_out, uint8_t* dr_in, uint8_t* dr_out)
 {
     uint32_t res = 0;
+
     clear_reg(dr_out, MAX_DR_LEN);
     int_to_bin_array(ir_in, USERCODE, ir_len);
-    insert_ir(ir_in, ir_len, RUN_TEST_IDLE, ir_out);
-    insert_dr(dr_in, 32, RUN_TEST_IDLE, dr_out);
-    
+    insert_ir(ir_in, ir_out, ir_len, RUN_TEST_IDLE);
+    insert_dr(dr_in, dr_out, 32, RUN_TEST_IDLE);    
     bin_array_to_uint32(dr_out, 32, &res);
+
     return res;
 }
 
@@ -41,40 +43,34 @@ void max10_read_ufm_range(const uint8_t ir_len, uint8_t* ir_in, uint8_t* ir_out,
 {
     uint32_t res = 0;
 
-    if (num < 0)
-    {
-        Serial.println("\nNumber of words to read must be positive. Exiting...");
-        return;
-    }
-
     Serial.println("\nReading flash in address iteration fashion");
-    int_to_bin_array(ir_in, ISC_ENABLE, ir_len);
-    insert_ir(ir_in, ir_len, RUN_TEST_IDLE, ir_out);
+    int_to_bin_array(ir_in, ir_len, ISC_ENABLE);
+    insert_ir(ir_in, ir_out, ir_len, RUN_TEST_IDLE);
 
     // delay between ISC_Enable and read attenpt.(may be shortened)
     delay(15);
     
-    for (uint32_t j=start ; j < (start + num); j += 4)
+    for (uint32_t j=start; j < (start + num); j += 4)
     {
         // shift address instruction
-        int_to_bin_array(ir_in, ISC_ADDRESS_SHIFT, ir_len);
-        insert_ir(ir_in, ir_len, RUN_TEST_IDLE, ir_out);
+        int_to_bin_array(ir_in, ir_len, ISC_ADDRESS_SHIFT);
+        insert_ir(ir_in, ir_out, ir_len, RUN_TEST_IDLE);
         
         // shift address value
         clear_reg(dr_in, 32);
         int_to_bin_array(dr_in, j, 23);
-        insert_dr(dr_in, 23, RUN_TEST_IDLE, dr_out);
+        insert_dr(dr_in, dr_out, 23, RUN_TEST_IDLE);
         
         // shift read instruction
-        int_to_bin_array(ir_in, ISC_READ, ir_len);
-        insert_ir(ir_in, ir_len, RUN_TEST_IDLE, ir_out);
+        int_to_bin_array(ir_in, ir_len, ISC_READ);
+        insert_ir(ir_in, ir_out, ir_len, RUN_TEST_IDLE);
 
         // read data
         clear_reg(dr_in, 32);
-        insert_dr(dr_in, 32, RUN_TEST_IDLE, dr_out);
+        insert_dr(dr_in, dr_out, 32, RUN_TEST_IDLE);
 
         // print address and corresponding data
-        int_to_bin_array(dr_out, 32, &res);
+        int_to_bin_array(dr_out, res, 32);
         Serial.print("\n0x"); Serial.print(j, HEX);
         Serial.print(": 0x"); Serial.print(res, HEX);
         Serial.flush();
@@ -95,38 +91,32 @@ void max10_read_ufm_range_burst(const uint8_t ir_len, uint8_t* ir_in, uint8_t* i
 {
     uint32_t res = 0;
 
-    if (num < 0)
-    {
-        Serial.println("\nNumber of words to read must be positive. Exiting...");
-        return;
-    }
-
     Serial.println("\nReading flash in burst fashion");    
-    int_to_bin_array(ir_in, ISC_ENABLE, ir_len);
-    insert_ir(ir_in, ir_len, RUN_TEST_IDLE, ir_out);
+    int_to_bin_array(ir_in, ir_len, ISC_ENABLE);
+    insert_ir(ir_in, ir_out, ir_len, RUN_TEST_IDLE);
 
     // delay between ISC_Enable and read attenpt.(may be shortened)
     delay(15);
 
     // shift address instruction
-    int_to_bin_array(ir_in, ISC_ADDRESS_SHIFT, ir_len);
-    insert_ir(ir_in, ir_len, RUN_TEST_IDLE, ir_out);
+    int_to_bin_array(ir_in, ir_len, ISC_ADDRESS_SHIFT);
+    insert_ir(ir_in, ir_out, ir_len, RUN_TEST_IDLE);
 
     // shift address value
     clear_reg(dr_in, 32);
     int_to_bin_array(dr_in, start, 23);
-    insert_dr(dr_in, 23, RUN_TEST_IDLE, dr_out);
+    insert_dr(dr_in, dr_out, 23, RUN_TEST_IDLE);
 
     // shift read instruction
-    int_to_bin_array(ir_in, ISC_READ, ir_len);
-    insert_ir(ir_in, ir_len, RUN_TEST_IDLE, ir_out);
+    int_to_bin_array(ir_in, ir_len, ISC_READ);
+    insert_ir(ir_in, ir_out, ir_len, RUN_TEST_IDLE);
 
     clear_reg(dr_in, 32);
 
     for (uint32_t j=start ; j < (start + num); j += 4)
     {
         // read data in burst fashion
-        insert_dr(dr_in, 32, RUN_TEST_IDLE, dr_out);
+        insert_dr(dr_in, dr_out, 32, RUN_TEST_IDLE);
 
         // print address and corresponding data
         bin_array_to_uint32(dr_out, 32, &res);
@@ -188,21 +178,21 @@ void max10_erase_device(const uint8_t ir_len, uint8_t* ir_in, uint8_t * ir_out, 
     clear_reg(ir_in, ir_len);
     clear_reg(dr_in, 32);
 
-    int_to_bin_array(ir_in, ISC_ENABLE, ir_len);
-    insert_ir(ir_in, ir_len, RUN_TEST_IDLE, ir_out);
+    int_to_bin_array(ir_in, ir_len, ISC_ENABLE);
+    insert_ir(ir_in, ir_out, ir_len, RUN_TEST_IDLE);
 
     delay(1);
 
-    int_to_bin_array(ir_in, ISC_ADDRESS_SHIFT, ir_len);
-    insert_ir(ir_in, ir_len, RUN_TEST_IDLE, ir_out);
+    int_to_bin_array(ir_in, ir_len, ISC_ADDRESS_SHIFT);
+    insert_ir(ir_in, ir_out, ir_len, RUN_TEST_IDLE);
     
-    int_to_bin_array(dr_in, 0x00, 23);
-    insert_dr(dr_in, 23, RUN_TEST_IDLE, dr_out);
+    int_to_bin_array(dr_in, 23, 0x00);
+    insert_dr(dr_in, dr_out, 23, RUN_TEST_IDLE);
 
     delay(1);
 
-    int_to_bin_array(ir_in, DSM_CLEAR, ir_len);
-    insert_ir(ir_in, ir_len, RUN_TEST_IDLE, ir_out);
+    int_to_bin_array(ir_in, ir_len, DSM_CLEAR);
+    insert_ir(ir_in, ir_out, ir_len, RUN_TEST_IDLE);
 
     delay(400);
 
@@ -227,7 +217,7 @@ void max10_print_menu()
 void max10_main(const uint8_t ir_len, uint8_t* ir_in, uint8_t* ir_out, uint8_t* dr_in, uint8_t* dr_out)
 {
     max10_print_menu();
-    char command = getCharacter("\nmax10 > ");
+    char command = get_character("\nmax10 > ");
 
     switch (command)
     {

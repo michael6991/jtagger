@@ -18,4 +18,6 @@
 #define ERR_TAP_DEVICE_UNAVAILABLE    11
 #define ERR_TAP_DEVICE_ALREADY_ACTIVE 12
 
+typedef int status_t;
+
 #endif

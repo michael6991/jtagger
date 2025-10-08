@@ -4,7 +4,10 @@
 #include <stdint.h>
 
 #include "Arduino.h"
+#include "status.h"
 
+// Global Variables
+extern String digits;
 
 /**
  * @brief Fill the register with zeros
@@ -65,10 +68,9 @@ void fetch_number(const char* message);
  * @brief Used for various tasks where a hexadecimal number needs to be received
  * from the user via the serial port.
  * @param num_bytes The amount of hexadecimal characters to receive.
- * @param message Message for the user.
  * @return uint32_t representation of the hexadecimal number from user.
  */
-uint32_t get_tnteger(int num_bytes, const char* message);
+uint32_t get_tnteger(int num_bytes);
 
 /**
  *
@@ -79,14 +81,15 @@ uint32_t get_tnteger(int num_bytes, const char* message);
  * @param size Size (in bytes) of the destination array.
  * @param out The constructed number.
  */
-int parse_number(uint8_t* dest, uint16_t size, const char* message, uint32_t* out);
+status_t parse_number(uint8_t* dest, uint16_t size, const char* message, uint32_t* out);
 
 /**
  * @brief Convert char into a hexadecimal number
- * @param ch Character to convert
- * @return Hexadecimal representation of the char, or error code if out of bounds.
+ * @param ch Character to convert.
+ * @param out Reference to output result.
+ * @return Status code OK if not out of bounds.
  */
-int chr_to_hex(char ch);
+status_t chr_to_hex(char ch, uint8_t* out);
 
 /**
  * @brief Convert the content of a String object into an integer number,
@@ -97,7 +100,7 @@ int chr_to_hex(char ch);
  * @param str Pointer to the array of bits.
  * @param out An unsigned integer that represents the the value of the array bits.
  */
-int bin_string_to_uint32(String str, uint32_t* out);
+status_t bin_string_to_uint32(String str, uint32_t* out);
 
 /**
  * @brief Convert array of bytes into an integer number, where every byte
@@ -108,7 +111,7 @@ int bin_string_to_uint32(String str, uint32_t* out);
  * @param len Integer that represents the length of the binary array.
  * @param out Pointer to result integer that represents the the value of the bits array.
  */
-int bin_array_to_uint32(uint8_t* arr, int len, uint32_t* out);
+status_t bin_array_to_uint32(uint8_t* arr, int len, uint32_t* out);
 
 /**
  * @brief Convert a binary string into a bytes array arr that will represent
@@ -120,7 +123,7 @@ int bin_array_to_uint32(uint8_t* arr, int len, uint32_t* out);
  * @param strSize Length of the string object.
  * @return ok or error code.
  */
-int bin_str_to_bin_array(uint8_t* arr, int arrSize, String str ,int strSize);
+status_t bin_str_to_bin_array(uint8_t* arr, int arrSize, String str ,int strSize);
 
 /**
  * @brief Convert a hexadecimal string into a bytes array arr that will represent
@@ -133,7 +136,7 @@ int bin_str_to_bin_array(uint8_t* arr, int arrSize, String str ,int strSize);
  * @param strSize Length of the string object.
  * @return ok or error code
  */
-int hex_str_to_bin_array(uint8_t* arr, int arrSize, String str, int strSize);
+status_t hex_str_to_bin_array(uint8_t* arr, int arrSize, String str, int strSize);
 
 /**
  * @brief Convert base 10 decimal string into a bytes array arr that will represent
@@ -145,7 +148,7 @@ int hex_str_to_bin_array(uint8_t* arr, int arrSize, String str, int strSize);
  * (LSB is the first char of string).
  * @param strSize Length of the string object.
  */
-int dec_str_to_bin_array(uint8_t* arr, int arrSize, String str, int strSize);
+status_t dec_str_to_bin_array(uint8_t* arr, int arrSize, String str, int strSize);
 
 /**
  * @brief Convert an integer number n into a bytes array arr that will represent
@@ -155,7 +158,7 @@ int dec_str_to_bin_array(uint8_t* arr, int arrSize, String str, int strSize);
  * @param n The integer to convert.
  * @param len Length of the output array in bytes. (max size 32)
  */
-int int_to_bin_array(uint8_t* arr, uint32_t n, uint32_t len);
+status_t int_to_bin_array(uint8_t* arr, uint32_t n, uint32_t len);
 
 /**
  * @brief Prints the given array from last element to first.

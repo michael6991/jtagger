@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#include "../../include/status.h"
+
 /**
  *  The total number of exisitng TAPs/Devices in the system that
  *  can be registered.
@@ -28,9 +30,9 @@ uint32_t chain_get_total_ir_len();
  */
 void chain_taps_init(tap_t* taps);
 
-int chain_tap_add(tap_t* taps, int index, const char* name, const uint32_t idcode, const int ir_len);
+status_t chain_tap_add(tap_t* taps, int index, const char* name, const uint32_t idcode, const int ir_len);
 
-int chain_tap_remove(tap_t* taps, int index);
+status_t chain_tap_remove(tap_t* taps, int index);
 
 /**
  *         Global IR register
@@ -57,9 +59,9 @@ int chain_tap_remove(tap_t* taps, int index);
  *  device 2: in = 9, out = 11
  * 
  */
-int chain_tap_activate(tap_t* taps, int index, const int ir_in_idx, const int ir_out_idx);
+status_t chain_tap_activate(tap_t* taps, int index, const int ir_in_idx, const int ir_out_idx);
 
-int chain_tap_deactivate(tap_t* taps, int index);
+status_t chain_tap_deactivate(tap_t* taps, int index);
 
 /**
  * Example of a system/board where 2 TAPs exist in a single SOC:
@@ -81,7 +83,7 @@ int chain_tap_deactivate(tap_t* taps, int index);
  *          |____________|     |____________|
  * 
  */
-int chain_tap_selector(tap_t* taps, int index, tap_t* out, uint8_t* ir_in, uint8_t* ir_out);
+status_t chain_tap_selector(tap_t* taps, int index, tap_t* out, uint8_t* ir_in, uint8_t* ir_out);
 
 /**
  * Print all active TAP devices in TAPs chain array.

@@ -1,8 +1,8 @@
 #include <stdint.h>
 
 #include "../../include/status.h"
+#include "../../include/main.h"
 #include "Arduino.h"
-
 
 typedef enum TapState
 {
@@ -10,6 +10,9 @@ typedef enum TapState
     SELECT_DR, CAPTURE_DR, SHIFT_DR, EXIT1_DR, PAUSE_DR, EXIT2_DR, UPDATE_DR,
     SELECT_IR, CAPTURE_IR, SHIFT_IR, EXIT1_IR, PAUSE_IR, EXIT2_IR, UPDATE_IR
 } tap_state;
+
+// Global Variables
+extern tap_state current_state;
 
 /**
  * 
@@ -26,7 +29,7 @@ void reset_tap();
  * @param out_id_code An integer that represents the idcode that is
  * available in the currently active TAP (device) between JTDI and JTDO.
  */
-int detect_chain(uint32_t* out_ir_len, uint32_t* out_idcode);
+status_t detect_chain(uint32_t* out_ir_len, uint32_t* out_idcode);
 
 /**
 *	@brief Insert data of length ir_len to IR, and end the interaction
@@ -37,18 +40,18 @@ int detect_chain(uint32_t* out_ir_len, uint32_t* out_idcode);
 *	@param ir_len Length of the register currently connected between tdi and tdo.
 *	@param end_state TAP state after dr inseration.
 */
-void insert_ir(uint8_t* ir_in, uint8_t* ir_out, uint8_t ir_len, uint8_t end_state);
+void insert_ir(uint8_t* ir_in, uint8_t* ir_out, uint32_t ir_len, uint8_t end_state);
 
 /**
 *	@brief Insert data of length dr_len to DR, and end the interaction
 *	in the state end_state which can be one of the following:
 *	TLR, RTI.
 *	@param dr_in Pointer to the input data array. (bytes array)
+*	@param dr_out Pointer to the output data array. (bytes array)
 *	@param dr_len Length of the register currently connected between tdi and tdo.
 *	@param end_state TAP state after dr inseration.
-*	@param dr_out Pointer to the output data array. (bytes array)
 */
-void insert_dr(uint8_t* dr_in, uint8_t dr_len, uint8_t end_state, uint8_t* dr_out);
+void insert_dr(uint8_t* dr_in, uint8_t* dr_out, uint32_t dr_len, uint8_t end_state);
 
 /**
  * @brief Clean the IR and DR together
@@ -64,7 +67,7 @@ void flush_ir_dr(uint8_t* ir_reg, uint8_t* dr_reg, uint32_t ir_len, uint32_t dr_
  * @return Counter that represents the size of the DR. Or 0 if didn't find
  * a valid size. (DR may not be implemented or some other reason).
  */
-uint32_t detect_dr_len(uint8_t* instruction, uint8_t ir_len, uint32_t process_ticks);
+uint32_t detect_dr_len(uint8_t* instruction, uint32_t ir_len, uint32_t process_ticks);
 
 /**
  * @brief Similarly to discovery command in urjtag, performs a brute force search
@@ -73,14 +76,14 @@ uint32_t detect_dr_len(uint8_t* instruction, uint8_t ir_len, uint32_t process_ti
  * @param first ir value to begin with.
  * @param last Usually 2 to the power of (ir_len) - 1.
  * @param max_dr_len Maximum data register allowed.
+ * @param ir_len Length of the IR.
  * @param ir_in Pointer to ir_in register.
- * @param ir_out Pointer to ir_out register.
 */
-int discovery(uint32_t first, uint32_t last, uint32_t max_dr_len, uint8_t* ir_in, uint8_t* ir_out);
+status_t discovery(uint32_t first, uint32_t last, uint32_t max_dr_len, uint32_t ir_len,  uint8_t* ir_in);
 
 /**
 *	@brief Advance the TAP machine 1 state ahead according to the current state 
 *	and next state of the IEEE 1149.1 standard.
 *	@param next_state The next state to advance to.
 */
-int advance_tap_state(uint8_t next_state);
+status_t advance_tap_state(uint8_t next_state);
