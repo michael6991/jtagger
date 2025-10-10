@@ -230,7 +230,8 @@ void max10_main(const uint8_t ir_len, uint8_t* ir_in, uint8_t* ir_out, uint8_t* 
         // read user code
         Serial.print("\nUser Code: 0x"); 
         Serial.print(max10_read_user_code(ir_len, ir_in, ir_out, dr_in, dr_out), HEX);
-        flush_ir_dr(ir_in, dr_out, ir_len, MAX_DR_LEN);
+        clear_reg(ir_in, ir_len);
+        clear_reg(dr_out, MAX_DR_LEN);
         break;
 
     case 'c':

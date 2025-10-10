@@ -30,11 +30,20 @@ uint32_t chain_get_total_ir_len();
  */
 void chain_taps_init(tap_t* taps);
 
-status_t chain_tap_add(tap_t* taps, int index, const char* name, const uint32_t idcode, const int ir_len);
+/**
+ * @brief Add a new TAP device.
+ * You can only add a new one after an existing active TAP,
+ * or if its the first TAP device.
+ */
+status_t chain_tap_add(tap_t* taps, const uint32_t index, const char* name, const uint32_t idcode, const uint32_t ir_len);
 
-status_t chain_tap_remove(tap_t* taps, int index);
+status_t chain_tap_remove(tap_t* taps, const uint32_t index);
 
 /**
+ * The function activates an appended new TAP device
+ * and assigns the appropriate ir in/out indexes in the global
+ * IR array according to the previous active TAP devices.
+ * 
  *         Global IR register
  * 
  * example: array/register of 12 bits
@@ -44,7 +53,7 @@ status_t chain_tap_remove(tap_t* taps, int index);
  *    |_||_||_||_||_| |_||_||_||_|  |_||_||_|
  *     ^           ^   ^        ^    ^     ^
  *     out        in   out     in    out  in
- *     { dev 0     }   { dev 1  }    { dev 2 }
+ *     { dev 2     }   { dev 1  }    { dev 0 }
  *     { len 5     }   { len 4  }    { len 3 }
  * 
  * When activating a tap device, we assign its "in" entrance index
@@ -54,14 +63,17 @@ status_t chain_tap_remove(tap_t* taps, int index);
  * the offset relative to the first bit (MSB  bit 0).
  * 
  * Explanation according to the above example:
- *  device 0: in = 0, out = 4
- *  device 1: in = 5, out = 8
- *  device 2: in = 9, out = 11
+ *  device 0: in = 0, out = 2
+ *  device 1: in = 3, out = 6
+ *  device 2: in = 7, out = 11
  * 
  */
-status_t chain_tap_activate(tap_t* taps, int index, const int ir_in_idx, const int ir_out_idx);
+status_t chain_tap_activate(tap_t* taps, const uint32_t index);
 
-status_t chain_tap_deactivate(tap_t* taps, int index);
+/**
+ * Deactivate the selected TAP device.
+ */
+status_t chain_tap_deactivate(tap_t* taps, const uint32_t index);
 
 /**
  * Example of a system/board where 2 TAPs exist in a single SOC:
@@ -83,7 +95,7 @@ status_t chain_tap_deactivate(tap_t* taps, int index);
  *          |____________|     |____________|
  * 
  */
-status_t chain_tap_selector(tap_t* taps, int index, tap_t* out, uint8_t* ir_in, uint8_t* ir_out);
+status_t chain_tap_selector(tap_t* taps, const uint32_t index, tap_t* out, uint8_t* ir_in, uint8_t* ir_out);
 
 /**
  * Print all active TAP devices in TAPs chain array.

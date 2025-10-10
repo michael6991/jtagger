@@ -20,12 +20,9 @@ Controlled by a python3 host via the Serial0 UART interface of the Arduino.
 * Find a way to detect multiple devices in chain and work seperately on each one
 * Option to insert ir,dr to a specific device in chain
 * Set verbosity options
-* Wrap print functions ?
-* Move function descriptions to header file
+* Define a "perror" function
 * Utilize TRST with JTAGScan
 * Utilize RTCK line for TI devices ?
-* Create a CMake build system and that compiles, links and flashes using Arduino's tools
-* Organize all the files in directories
 
 ## Build Notes
 ``` prepare build system ```

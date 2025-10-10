@@ -21,7 +21,6 @@ extern tap_state current_state;
  */
 void reset_tap();
 
-// TODO: move to chain.cpp ?
 /**
  * @brief Detects the the existence of a chain and checks the ir length.
  * @param out_ir_len An integer that represents the length of the instructions.
@@ -52,11 +51,6 @@ void insert_ir(uint8_t* ir_in, uint8_t* ir_out, uint32_t ir_len, uint8_t end_sta
 *	@param end_state TAP state after dr inseration.
 */
 void insert_dr(uint8_t* dr_in, uint8_t* dr_out, uint32_t dr_len, uint8_t end_state);
-
-/**
- * @brief Clean the IR and DR together
- */
-void flush_ir_dr(uint8_t* ir_reg, uint8_t* dr_reg, uint32_t ir_len, uint32_t dr_len);
 
 /**
  * @brief Find out the dr length of a specific instruction.

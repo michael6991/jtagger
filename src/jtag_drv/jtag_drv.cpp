@@ -117,7 +117,7 @@ status_t detect_chain(uint32_t* out_ir_len, uint32_t* out_idcode)
 void insert_ir(uint8_t* ir_in, uint8_t* ir_out, uint32_t ir_len, uint8_t end_state)
 {
     // make sure that current state is TLR (test logic reset)
-    uint8_t i = 0;
+    uint32_t i = 0;
 
     advance_tap_state(RUN_TEST_IDLE);
     advance_tap_state(SELECT_DR);
@@ -189,19 +189,14 @@ void insert_dr(uint8_t* dr_in,  uint8_t* dr_out, uint32_t dr_len, uint8_t end_st
     }
 }
 
-void flush_ir_dr(uint8_t* ir_reg, uint8_t* dr_reg, uint32_t ir_len, uint32_t dr_len)
-{
-    clear_reg(ir_reg, ir_len);
-    clear_reg(dr_reg, dr_len);
-}
-
 uint32_t detect_dr_len(uint8_t* instruction, uint32_t ir_len, uint32_t process_ticks)
 {	
-    // make sure that current state is TLR prior this calling this function.
-
     // temporary array to strore the shifted out bits from IR
     uint8_t tmp[ir_len];
     uint32_t i, counter = 0;
+
+    // make sure that current state is TLR prior this calling this function.
+    reset_tap();
 
     // insert the instruction we wish to check into ir
     insert_ir(instruction, tmp, ir_len, RUN_TEST_IDLE);
@@ -283,6 +278,7 @@ status_t discovery(uint32_t first, uint32_t last, uint32_t max_dr_len, uint32_t 
 
     reset_tap();
     Serial.println("\n\n   Done");
+
     return rc;
 }
 

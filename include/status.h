@@ -17,6 +17,7 @@
 #define ERR_TDO_STUCK_AT_1            10
 #define ERR_TAP_DEVICE_UNAVAILABLE    11
 #define ERR_TAP_DEVICE_ALREADY_ACTIVE 12
+#define ERR_RESOURCE_EXHAUSTED        13
 
 typedef int status_t;
 

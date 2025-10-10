@@ -65,6 +65,10 @@ void setup()
 
     // initialize possible TAPs in chain
     chain_taps_init(taps);
+    clear_reg(ir_in, MAX_IR_LEN);
+    clear_reg(ir_out, MAX_IR_LEN);
+    clear_reg(dr_in, MAX_DR_LEN);
+    clear_reg(dr_out, MAX_DR_LEN);
 
     // initialize serial communication
     Serial.begin(115200);
@@ -75,7 +79,6 @@ void setup()
 void loop()
 {
     status_t rc = OK;
-    // TODO put these variables in outside this function ?
     uint32_t num, dr_len = 0;
     uint32_t nbits, first_ir, final_ir, max_dr_len = 0;
     uint32_t chain_ir_len, chain_idcode = 0;
@@ -91,12 +94,11 @@ void loop()
         Serial.println("\nInvalid 'start' response from host");
         goto inf_loop;
     }
-    
+
     print_welcome();
 
     // try to detect the existance of a chain and set a single device to the chain
     chain_tap_add(taps, which_tap, "device 0", 0, 2);
-    chain_tap_selector(taps, which_tap, cur_tap, ir_in, ir_out);
 
     // detect chain and read idcode.
     // at the initial detection we reference the first tap device: taps[0].
@@ -113,7 +115,7 @@ void loop()
     }
 
     // successfuly found active device in chain so activate the initial tap in chain
-    chain_tap_activate(taps, which_tap, 0, cur_tap->ir_len - 1);
+    chain_tap_activate(taps, which_tap);
 
     reset_tap();
     print_main_menu();
@@ -125,15 +127,34 @@ void loop()
 
         switch (command)
         {
+        // activate TAP device
+        case 'a':
+            chain_print_active_taps(taps);
+            rc = parse_number(nullptr, 32, "Select which TAP device index you want to activate (Decimal) > ", &which_tap);
+            if (rc != OK) {
+                Serial.println("\nCould not get valid TAP device index");
+                break;
+            }
+
+            rc = chain_tap_activate(taps, which_tap);
+            if (rc != OK) {
+                Serial.print("\nError selecting tap device: "); Serial.print(which_tap, DEC);
+                Serial.println("TAP device is inactive or was not discovered properly");
+                break;
+            }
+
+            Serial.print("\nSelected TAP device: "); Serial.println(which_tap, DEC);
+            break;
+
+        // attempt to connect to chain and read idcode
         case 'c':
-            // attempt to connect to chain and read idcode
             rc = detect_chain(&chain_ir_len, &chain_idcode);
             if (rc != OK) break;
             Serial.print("Chain IR length: "); Serial.print(chain_ir_len);
             break;
 
+        // discovery of existing IRs
         case 'd':
-            // discovery of existing IRs
             rc = parse_number(nullptr, 20, "First IR > ", &first_ir);
             if (rc != OK) break;
             rc = parse_number(nullptr, 20, "Final IR > ", &final_ir);
@@ -144,16 +165,19 @@ void loop()
             discovery(first_ir, final_ir, max_dr_len, cur_tap->ir_len, ir_in);
             break;
 
+        // insert ir
         case 'i':
-            // insert ir
-            rc = parse_number(ir_in, cur_tap->ir_len, "\nShift IR > ", &num);
+            rc = parse_number(&ir_in[cur_tap->ir_in_idx], cur_tap->ir_len, "\nShift IR > ", &num);
             if (rc != OK) break;
-            
-            // insert the given value
-            insert_ir(ir_in, ir_out, cur_tap->ir_len, RUN_TEST_IDLE);
 
             Serial.print("\nIR  in: ");
             print_array(ir_in, cur_tap->ir_len);
+            if (get_character("\ncontinue (y/n)? > ") == 'n')
+                break;
+            
+            // insert the existing binary value in the ir_in global register
+            // and save the output to the ir_out global register
+            insert_ir(ir_in, ir_out, cur_tap->ir_len, RUN_TEST_IDLE);
 
             // print the hex value if length is not to large
             if (cur_tap->ir_len <= 32) 
@@ -173,8 +197,8 @@ void loop()
             }
             break;
 
+        // detect current dr length
         case 'l':
-            // detect current dr length
             dr_len = detect_dr_len(ir_in, cur_tap->ir_len, 4);
             if (dr_len == 0) {
                 Serial.println("\nDidn't find the current DR length, TDO is stuck");
@@ -185,15 +209,13 @@ void loop()
             }
             break;
 
-        case 'm':
-            // TODO: this letter should lead to a menu of all existing targets-
-            // instead of just a single target
-            // entering into MAX10 FPGA command menu
-            max10_main(cur_tap->ir_len, ir_in, ir_out, dr_in, dr_out);
+        // print active TAPs chain
+        case 'p':
+            chain_print_active_taps(taps);
             break;
 
+        // insert dr
         case 'r':
-            // insert dr
             rc = parse_number(nullptr, 32, "Enter amount of bits to shift > ", &nbits);
             if (nbits == 0 || rc != OK)
                 break;
@@ -225,10 +247,11 @@ void loop()
             break;
 
         case 's':
+            // select active tap to work on
             chain_print_active_taps(taps);
-            rc = parse_number(nullptr, 32, "Selecet the TAP device number > ", &which_tap);
+            rc = parse_number(nullptr, 32, "Selecet the TAP device index (Decimal) > ", &which_tap);
             if (rc != OK) {
-                Serial.println("\nCould not get valid TAP device number");
+                Serial.println("\nCould not get valid TAP device index");
                 break;
             }
             
@@ -240,7 +263,6 @@ void loop()
             }
 
             Serial.print("\nSelected TAP device: "); Serial.println(which_tap, DEC);
-
             break;
 
         case 't':

@@ -117,7 +117,7 @@ uint32_t get_integer(int num_bytes)
     return z;
 }
 
-status_t parse_number(uint8_t* dest, uint16_t size, const char* message, uint32_t* out)
+status_t parse_number(uint8_t* dest, uint32_t size, const char* message, uint32_t* out)
 {
     status_t rc = OK;
     char prefix = '0';
@@ -507,7 +507,14 @@ status_t int_to_bin_array(uint8_t* arr, uint32_t n, uint32_t len)
 
 void print_array(uint8_t* arr, uint32_t len)
 {
-    for (int16_t i = len - 1; i >= 0; i--)
+    int i;
+
+    Serial.print("\nMSB");
+    for (i = len - 1; i >= 0; i--)
+        Serial.print("*");
+    Serial.println("LSB");
+
+    for (i = len - 1; i >= 0; i--)
         Serial.print(arr[i], HEX);
 
     Serial.flush();

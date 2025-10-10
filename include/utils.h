@@ -81,7 +81,7 @@ uint32_t get_tnteger(int num_bytes);
  * @param size Size (in bytes) of the destination array.
  * @param out The constructed number.
  */
-status_t parse_number(uint8_t* dest, uint16_t size, const char* message, uint32_t* out);
+status_t parse_number(uint8_t* dest, uint32_t size, const char* message, uint32_t* out);
 
 /**
  * @brief Convert char into a hexadecimal number
