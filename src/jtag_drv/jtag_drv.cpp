@@ -66,7 +66,7 @@ status_t detect_chain(uint32_t* out_ir_len, uint32_t* out_idcode)
     Serial.print(idcode, HEX); Serial.print(")");
 
     // find ir length.
-    Serial.print("\nAttempting to find IR length of target ...\n");
+    Serial.println("\nAttempting to find IR length of target ...");
     reset_tap();
     advance_tap_state(RUN_TEST_IDLE);
     advance_tap_state(SELECT_DR);
@@ -97,7 +97,7 @@ status_t detect_chain(uint32_t* out_ir_len, uint32_t* out_idcode)
             counter++;
             *out_ir_len = counter;
             *out_idcode = idcode;
-            Serial.print("\nIR length: "); Serial.println(counter, DEC);
+            Serial.print("IR length: "); Serial.println(counter, DEC);
             return OK;
         }
         counter++;

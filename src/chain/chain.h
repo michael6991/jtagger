@@ -100,6 +100,6 @@ status_t chain_tap_selector(tap_t* taps, const uint32_t index, tap_t* out, uint8
 /**
  * Print all active TAP devices in TAPs chain array.
  */
-void chain_print_active_taps(tap_t* taps);
+void chain_print_taps(tap_t* taps);
 
 #endif /* __CHAIN_H__ */

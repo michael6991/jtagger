@@ -35,14 +35,17 @@ void print_main_menu()
     Serial.flush();	
     Serial.print("\n---------\nMain Menu\n\n");
     Serial.print("\tAll numerical parameters should be passed in the format: {0x || 0b || decimal}\n\n");
+    Serial.print("a - Add new TAP device to chain\n");
+    Serial.print("b - Activate TAP device in chain\n");
     Serial.print("c - Connect to chain\n");
     Serial.print("d - Discovery\n");
     Serial.print("i - Insert IR\n");
     Serial.print("l - Detect DR length\n");
+    Serial.print("p - Print active TAP devices in chain\n");
     Serial.print("r - Insert DR\n");
+    Serial.print("s - Select active TAP device to work on\n");
     Serial.print("t - Reset TAP state machine\n");
     Serial.print("q - Toggle TRST line\n");
-    Serial.print("m - MAX10 FPGA commands\n");
     Serial.print("h - Show this menu\n");
     Serial.print("z - Exit\n");
     Serial.flush();
@@ -82,8 +85,15 @@ void loop()
     uint32_t num, dr_len = 0;
     uint32_t nbits, first_ir, final_ir, max_dr_len = 0;
     uint32_t chain_ir_len, chain_idcode = 0;
-    // uint32_t ir_in_val, ir_out_val = 0;
     uint32_t which_tap = 0;
+
+    uint32_t tmp_idcode = 0;
+    uint32_t tmp_ir_len = 0;
+
+    String str;
+    str.reserve(32);
+    memset((void*)str.c_str(), '\0', 32);
+
     tap_t* cur_tap = nullptr;
     current_state = TEST_LOGIC_RESET;
     char command = '0';
@@ -99,6 +109,7 @@ void loop()
 
     // try to detect the existance of a chain and set a single device to the chain
     chain_tap_add(taps, which_tap, "device 0", 0, 2);
+    cur_tap = &taps[0];
 
     // detect chain and read idcode.
     // at the initial detection we reference the first tap device: taps[0].
@@ -127,9 +138,31 @@ void loop()
 
         switch (command)
         {
-        // activate TAP device
+        // add new TAP device to chain
         case 'a':
-            chain_print_active_taps(taps);
+            chain_print_taps(taps);
+
+            rc = parse_number(nullptr, 32, "\nIndex in chain > ", &which_tap);
+            if (rc != OK) break;
+
+            str = get_string("\nName of device (31 chars) > ");
+            // TODO check str
+
+            rc = parse_number(nullptr, 32, "\nIdcode > ", &tmp_idcode);
+            if (rc != OK) break;
+            
+            rc = parse_number(nullptr, 32, "\nIR length > ", &tmp_ir_len);            if (rc != OK) break;
+
+            rc = chain_tap_add(taps, which_tap, str.c_str(), tmp_idcode, tmp_ir_len);
+            if (rc != OK) break;
+
+            chain_print_taps(taps);
+            memset((void*)str.c_str(), '\0', 32);
+            break;
+
+        // activate TAP device in chain
+        case 'b':
+            chain_print_taps(taps);
             rc = parse_number(nullptr, 32, "Select which TAP device index you want to activate (Decimal) > ", &which_tap);
             if (rc != OK) {
                 Serial.println("\nCould not get valid TAP device index");
@@ -167,6 +200,7 @@ void loop()
 
         // insert ir
         case 'i':
+            // TODO: debug the following line
             rc = parse_number(&ir_in[cur_tap->ir_in_idx], cur_tap->ir_len, "\nShift IR > ", &num);
             if (rc != OK) break;
 
@@ -211,7 +245,7 @@ void loop()
 
         // print active TAPs chain
         case 'p':
-            chain_print_active_taps(taps);
+            chain_print_taps(taps);
             break;
 
         // insert dr
@@ -248,7 +282,7 @@ void loop()
 
         case 's':
             // select active tap to work on
-            chain_print_active_taps(taps);
+            chain_print_taps(taps);
             rc = parse_number(nullptr, 32, "Selecet the TAP device index (Decimal) > ", &which_tap);
             if (rc != OK) {
                 Serial.println("\nCould not get valid TAP device index");

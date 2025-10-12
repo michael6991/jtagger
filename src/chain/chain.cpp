@@ -10,6 +10,7 @@
 
 // Count number of active devices in chain
 static uint32_t chain_active_devices = 0;
+static uint32_t chain_added_devices = 0;
 static uint32_t chain_ir_len = 0;
 
 uint32_t chain_get_active_devices() { return chain_active_devices; }
@@ -28,6 +29,8 @@ void chain_taps_init(tap_t* taps)
         taps[i].active = false;
     }
 
+    chain_ir_len = 0;
+    chain_added_devices = 0;
     chain_active_devices = 0;
 }
 
@@ -59,6 +62,7 @@ status_t chain_tap_add(tap_t* taps, const uint32_t index, const char* name, cons
     taps[index].ir_in_idx = 0;
     taps[index].ir_out_idx = 0;
     taps[index].active = false;
+    chain_added_devices++;
 
     return OK;
 }
@@ -77,6 +81,7 @@ status_t chain_tap_remove(tap_t* taps, const uint32_t index)
     taps[index].ir_len = 0;
     taps[index].ir_in_idx = 0;
     taps[index].ir_out_idx = 0;
+    chain_added_devices--;
 
     return OK;
 }
@@ -149,20 +154,25 @@ status_t chain_tap_selector(tap_t* taps, const uint32_t index, tap_t* out, uint8
     return OK;
 }
 
-void chain_print_active_taps(tap_t* taps)
+void chain_print_taps(tap_t* taps)
 {
     Serial.print("\nTotal active devices: "); Serial.print(chain_active_devices, DEC);
-    Serial.print("\nTotal IR length: "); Serial.print(chain_ir_len, DEC);
+    Serial.println("\nTotal IR length: "); Serial.print(chain_ir_len, DEC);
     Serial.flush();
 
-    for (int i = 0; i < MAX_ALLOWED_TAPS; i++)
+    for (uint32_t i = 0; i < chain_added_devices; i++)
     {
+        Serial.print("\nChain index "); Serial.print(i, DEC);
         if (taps[i].active)
-        {
-            Serial.print("\nTAP device "); Serial.print(i, DEC); Serial.print("active");
-            Serial.print("\nname: "); Serial.print(taps[i].name); Serial.print(" idcode: "); Serial.print(taps[i].idcode, HEX);
-            Serial.print("\nir len: "); Serial.println(taps[i].ir_len, DEC);
-            Serial.flush();
-        }
+            Serial.print(" [Active]");
+        else
+            Serial.print(" [Not Active]");
+
+        Serial.print("\nName: "); Serial.println(taps[i].name);
+        Serial.print("IDCODE: 0x"); Serial.print(taps[i].idcode, HEX);
+        Serial.print(" IR Length: "); Serial.println(taps[i].ir_len, DEC);
+        Serial.print("ir in index: "); Serial.println(taps[i].ir_in_idx, DEC);
+        Serial.print("ir out index: "); Serial.println(taps[i].ir_out_idx, DEC);
+        Serial.flush();
     }
 }

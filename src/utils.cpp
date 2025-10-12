@@ -509,11 +509,12 @@ void print_array(uint8_t* arr, uint32_t len)
 {
     int i;
 
-    Serial.print("\nMSB");
-    for (i = len - 1; i >= 0; i--)
-        Serial.print("*");
-    Serial.println("LSB");
-
+    // Serial.print("\nMSB");
+    // for (i = len - 1; i >= 0; i--)
+        // Serial.print(" ");
+    // Serial.println("LSB");
+    // Serial.print("  ");
+    
     for (i = len - 1; i >= 0; i--)
         Serial.print(arr[i], HEX);
 
