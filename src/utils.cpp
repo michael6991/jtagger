@@ -2,6 +2,7 @@
 
 #include "Arduino.h"
 #include "../include/utils.h"
+#include "../include/main.h"
 #include "../include/status.h"
 
 String digits = "";
@@ -22,6 +23,7 @@ void notify_input_and_busy_wait_for_serial_input(const char* message)
     clear_serial_rx_buf(); // first, clean the input buffer
     Serial.print(message); // notify user to input a value
     Serial.flush();
+    // wait for incoming data bytes
     while (Serial.available() == 0) {}
 }
 
@@ -49,7 +51,6 @@ char serial_event(char character)
     }
   }
 
-  Serial.flush();
   return inChar;
 }
 
@@ -68,7 +69,7 @@ char get_character(const char* message)
     return chr;
 }
 
-String get_string(const char* message)
+String get_string(const char* message) // TODO: is this function needed ?
 {
     String str;
 
@@ -122,9 +123,9 @@ status_t parse_number(uint8_t* dest, uint32_t size, const char* message, uint32_
     status_t rc = OK;
     char prefix = '0';
 
-    if (dest == nullptr) // TODO: check more params
+    if ((dest == nullptr) || (size == 0) || (message == nullptr) || (out == nullptr))
     {
-        Serial.println("\nDestination is nullptr, didn't get number");
+        Serial.println("\nparse_number bad function parameter");
         rc = -ERR_BAD_PARAMETER;
         goto exit;
     }

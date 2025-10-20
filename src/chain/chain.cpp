@@ -38,12 +38,16 @@ status_t chain_tap_add(tap_t* taps, const uint32_t index, const char* name, cons
 {
     if (index >= MAX_ALLOWED_TAPS)
         return -ERR_OUT_OF_BOUNDS;
-    
+        
+    if (ir_len > MAX_IR_LEN)
+        return -ERR_INVALID_IR_OR_DR_LEN;
+
+    if (name == nullptr || idcode == 0)
+        return -ERR_BAD_PARAMETER;
+
     if (taps[index].active)
         return -ERR_TAP_DEVICE_ALREADY_ACTIVE;
     
-    if (ir_len > MAX_IR_LEN)
-        return -ERR_INVALID_IR_OR_DR_LEN;
 
     // the new tap should be the first one in chain or adjacent
     // after an exisiting active TAP
@@ -53,6 +57,7 @@ status_t chain_tap_add(tap_t* taps, const uint32_t index, const char* name, cons
             return -ERR_BAD_PARAMETER;
 
         if (!taps[index - 1].active)
+            Serial.println("chain: tap device should be activated");
             return -ERR_TAP_DEVICE_UNAVAILABLE;
     }        
 
@@ -73,9 +78,12 @@ status_t chain_tap_remove(tap_t* taps, const uint32_t index)
         return -ERR_OUT_OF_BOUNDS;
     
     // tap should be deactivated first
-    if (taps[index].active)
-        return -ERR_TAP_DEVICE_ALREADY_ACTIVE;
-    
+    if (taps[index].active) 
+    {
+        Serial.println("chain: tap device should be activated prior removal");
+        return -ERR_TAP_DEVICE_REMOVE_ISSUE;
+    }
+
     memset(taps[index].name, 0, 32);
     taps[index].idcode = 0;
     taps[index].ir_len = 0;
@@ -121,6 +129,15 @@ status_t chain_tap_deactivate(tap_t* taps, const uint32_t index)
     if (index >= MAX_ALLOWED_TAPS)
         return -ERR_OUT_OF_BOUNDS;
 
+    // first or not last
+    // make sure the tap device after this device is not active
+    if ((index == 0) || (index == (MAX_ALLOWED_TAPS - 1)))
+    {
+        if (taps[index + 1].active) {
+            return -ERR_TAP_DEVICE_REMOVE_ISSUE;
+        }
+    }
+
     chain_ir_len -= taps[index].ir_len;
     chain_active_devices--;
     taps[index].active = false;
@@ -157,7 +174,7 @@ status_t chain_tap_selector(tap_t* taps, const uint32_t index, tap_t* out, uint8
 void chain_print_taps(tap_t* taps)
 {
     Serial.print("\nTotal active devices: "); Serial.print(chain_active_devices, DEC);
-    Serial.println("\nTotal IR length: "); Serial.print(chain_ir_len, DEC);
+    Serial.print("\nTotal IR length: "); Serial.print(chain_ir_len, DEC);
     Serial.flush();
 
     for (uint32_t i = 0; i < chain_added_devices; i++)
@@ -168,9 +185,9 @@ void chain_print_taps(tap_t* taps)
         else
             Serial.print(" [Not Active]");
 
-        Serial.print("\nName: "); Serial.println(taps[i].name);
-        Serial.print("IDCODE: 0x"); Serial.print(taps[i].idcode, HEX);
-        Serial.print(" IR Length: "); Serial.println(taps[i].ir_len, DEC);
+        Serial.print("\nname: "); Serial.println(taps[i].name);
+        Serial.print("idcode: 0x"); Serial.print(taps[i].idcode, HEX);
+        Serial.print(" ir Length: "); Serial.println(taps[i].ir_len, DEC);
         Serial.print("ir in index: "); Serial.println(taps[i].ir_in_idx, DEC);
         Serial.print("ir out index: "); Serial.println(taps[i].ir_out_idx, DEC);
         Serial.flush();
